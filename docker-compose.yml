@@ -1,0 +1,88 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: travelmind-app
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+      RELOAD: "false"
+
+      # Docker service names are used instead of localhost
+      REDIS_URL: redis://redis:6379/0
+      CACHE_ENABLED: "true"
+
+      # Local PostgreSQL
+      DATABASE_URL: postgresql://travelmind:travelmind@postgres:5432/travelmind
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: travelmind-postgres
+
+    environment:
+      POSTGRES_DB: travelmind
+      POSTGRES_USER: travelmind
+      POSTGRES_PASSWORD: travelmind
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U travelmind -d travelmind"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: travelmind-redis
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+  redis_data:
