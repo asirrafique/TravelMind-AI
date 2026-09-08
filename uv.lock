@@ -1074,7 +1074,7 @@ dependencies = [
     { name = "langgraph-checkpoint-postgres" },
     { name = "mcp" },
     { name = "nest-asyncio" },
-    { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg", extra = ["binary", "pool"] },
     { name = "psycopg-pool" },
     { name = "pycountry" },
     { name = "python-dotenv" },
@@ -1096,7 +1096,7 @@ requires-dist = [
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.1.2" },
     { name = "mcp", specifier = ">=1.29.1" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.4" },
     { name = "psycopg-pool", specifier = ">=3.3.1" },
     { name = "pycountry", specifier = ">=26.2.16" },
     { name = "python-dotenv", specifier = ">=1.2.3" },
@@ -1479,6 +1479,9 @@ wheels = [
 [package.optional-dependencies]
 binary = [
     { name = "psycopg-binary", marker = "implementation_name != 'pypy'" },
+]
+pool = [
+    { name = "psycopg-pool" },
 ]
 
 [[package]]
