@@ -2,7 +2,9 @@
 
 > A production-oriented multi-agent AI travel planner built with **LangGraph, MCP, FastAPI, Neon PostgreSQL, Redis, and Docker**.
 
-TravelMind AI transforms natural-language travel requests into structured travel plans by coordinating specialized AI agents for flights, hotels, weather, itinerary planning, and final response synthesis.
+TravelMind AI transforms natural-language travel requests into structured travel plans by coordinating specialized AI agents for flights, hotels, weather, itinerary planning, validation, and final response synthesis.
+
+---
 
 ## ✨ What It Does
 
@@ -17,6 +19,7 @@ TravelMind coordinates multiple specialized agents to produce:
 * 🌦️ Destination weather information
 * 🗺️ Day-by-day itinerary
 * 💰 Estimated travel budget
+* ✅ Travel-plan validation
 * 🧠 Final synthesized recommendations
 * 🧵 Persistent LangGraph state
 
@@ -26,13 +29,13 @@ TravelMind coordinates multiple specialized agents to produce:
 
 ```text
                          ┌──────────────────────┐
-                         │      Web UI           │
-                         │   HTML / CSS / JS     │
+                         │       Web UI         │
+                         │    HTML / CSS / JS   │
                          └──────────┬───────────┘
                                     │
                                     ▼
                          ┌──────────────────────┐
-                         │      FastAPI          │
+                         │       FastAPI        │
                          │                      │
                          │ POST /api/travel     │
                          │ GET  /api/config     │
@@ -40,12 +43,12 @@ TravelMind coordinates multiple specialized agents to produce:
                          └──────────┬───────────┘
                                     │
                                     ▼
-                    ┌───────────────────────────────┐
-                    │          LangGraph            │
-                    │     Multi-Agent Workflow      │
-                    └──────────────┬────────────────┘
-                                   │
-                                   ▼
+                  ┌───────────────────────────────┐
+                  │          LangGraph            │
+                  │     Multi-Agent Workflow      │
+                  └──────────────┬────────────────┘
+                                 │
+                                 ▼
                          ┌───────────────────┐
                          │   Flight Agent    │
                          └─────────┬─────────┘
@@ -67,14 +70,21 @@ TravelMind coordinates multiple specialized agents to produce:
                                    │
                                    ▼
                          ┌───────────────────┐
-                         │    Final Agent    │
+                         │ Validator Agent   │
+                         │ Safety + Quality  │
                          └─────────┬─────────┘
                                    │
                                    ▼
-                            Final Response
+                         ┌───────────────────┐
+                         │    Final Agent    │
+                         │ Response Synthesis│
+                         └─────────┬─────────┘
+                                   │
+                                   ▼
+                              Final Response
 
 
-                 External / Tool Layer
+                   External / Tool Layer
         ┌─────────────────────────────────────────┐
         │                                         │
         │  Tavily MCP       AviationStack MCP     │
@@ -97,11 +107,13 @@ TravelMind coordinates multiple specialized agents to produce:
 
         ┌────────────────────┐
         │       Redis        │
-        │       Cache        │
+        │   Optional Cache   │
         └────────────────────┘
 ```
 
-## 🔄 LangGraph Workflow
+---
+
+# 🔄 LangGraph Workflow
 
 The current workflow is explicitly orchestrated as:
 
@@ -121,30 +133,38 @@ Weather Agent
 Itinerary Agent
   │
   ▼
+Validator Agent
+  │
+  ▼
 Final Agent
   │
   ▼
 END
 ```
 
+The Validator Agent runs before final response synthesis so that unsupported, inconsistent, or unsafe travel information can be identified before the final answer is generated.
+
 ---
 
 # 🤖 Multi-Agent System
 
-| Agent                 | Responsibility                                                      |
-| --------------------- | ------------------------------------------------------------------- |
-| **Flight Agent**      | Retrieves and processes flight information using AviationStack MCP. |
-| **Hotel Agent**       | Researches and processes hotel information.                         |
-| **Weather Agent**     | Retrieves destination weather through the Weather MCP server.       |
-| **Itinerary Agent**   | Builds a structured day-by-day travel itinerary.                    |
-| **Final Agent**       | Synthesizes all agent outputs into the final travel response.       |
-| **Destination Agent** | Provides destination-related functionality within the project.      |
+| Agent                 | Responsibility                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Flight Agent**      | Retrieves and processes flight information using AviationStack MCP.                                                             |
+| **Hotel Agent**       | Researches and processes hotel information.                                                                                     |
+| **Weather Agent**     | Retrieves destination weather through the Weather MCP server.                                                                   |
+| **Itinerary Agent**   | Builds a structured day-by-day travel itinerary.                                                                                |
+| **Validator Agent**   | Performs deterministic and qualitative validation of travel dates, flights, hotels, weather, itinerary, and budget consistency. |
+| **Final Agent**       | Synthesizes validated agent outputs into the final travel response.                                                             |
+| **Destination Agent** | Provides destination-related functionality within the project.                                                                  |
 
 ---
 
 # 🔌 Model Context Protocol (MCP)
 
-TravelMind uses **MCP** to separate tool access from agent logic.
+TravelMind uses **Model Context Protocol (MCP)** to separate tool access from agent logic.
+
+This allows the AI agents to interact with external tools through standardized MCP interfaces rather than embedding all tool-specific logic directly inside the agents.
 
 ## Remote MCP
 
@@ -152,9 +172,21 @@ TravelMind uses **MCP** to separate tool access from agent logic.
 
 Tavily MCP is accessed through streamable HTTP and provides web research capabilities.
 
+```text
+TravelMind
+    │
+    ▼
+Tavily MCP
+    │
+    ▼
+Web Research
+```
+
+---
+
 ## Local MCP
 
-TravelMind also runs two local MCP servers through stdio:
+TravelMind also runs two local MCP servers through stdio.
 
 ### AviationStack MCP
 
@@ -166,11 +198,23 @@ uvx --with mcp<2 aviationstack-mcp
 
 The `mcp<2` constraint is used for compatibility with the current AviationStack MCP package.
 
+---
+
 ### Weather MCP
 
 TravelMind includes its own local Weather MCP server built using `FastMCP`.
 
 The Weather MCP server communicates with OpenWeather.
+
+```text
+Weather Agent
+      │
+      ▼
+Weather MCP
+      │
+      ▼
+OpenWeather
+```
 
 ---
 
@@ -178,13 +222,57 @@ The Weather MCP server communicates with OpenWeather.
 
 TravelMind combines:
 
-* **LangGraph** — multi-agent orchestration
+* **LangGraph** — multi-agent orchestration and stateful workflows
 * **LangChain** — LLM and tool integration
 * **Groq** — LLM inference
-* **MCP** — external tool integration
+* **MCP** — standardized external tool integration
 * **LangChain MCP Adapters** — MCP client integration
 
 The graph uses a shared travel state that moves through the specialized agents.
+
+---
+
+# 🛡️ Validation & Safety
+
+TravelMind includes a dedicated validation layer before final response synthesis.
+
+The validation system combines:
+
+* Deterministic Python validation
+* Qualitative LLM-based review
+* Flight-data verification checks
+* Date consistency checks
+* Hotel-night consistency checks
+* Itinerary date validation
+* Weather-date validation
+* Budget consistency checks
+* Unsupported-information detection
+
+The validator helps prevent the final response from presenting estimated or unavailable information as confirmed facts.
+
+### Example validation flow
+
+```text
+Flight Results
+Hotel Results
+Weather Results
+Itinerary
+      │
+      ▼
+Validator Agent
+      │
+      ├── Deterministic Checks
+      │
+      └── Qualitative Review
+              │
+              ▼
+       Validation Result
+              │
+              ▼
+         Final Agent
+```
+
+The final agent also applies additional response-safety rules, including avoiding invented flight times, booking confirmations, hotel availability, weather forecasts, and unsupported prices.
 
 ---
 
@@ -207,7 +295,7 @@ Travel Request
   LangGraph
       │
       ▼
-PostgresSaver
+ PostgresSaver
       │
       ▼
 Neon PostgreSQL
@@ -223,16 +311,16 @@ Docker does **not** run a PostgreSQL container.
 
 Redis provides an optional caching layer.
 
-Docker Compose runs Redis as a dedicated service:
+For local development, Docker Compose runs Redis as a dedicated service:
 
 ```text
 TravelMind App
       │
       ▼
-Redis
+    Redis
       │
       ▼
-Cache
+    Cache
 ```
 
 Redis is configured through:
@@ -244,11 +332,23 @@ CACHE_ENABLED=true
 
 The application is designed to gracefully fall back if caching is unavailable.
 
+### Production
+
+Redis is optional and can be provided through a managed Redis-compatible service.
+
+The initial production deployment can run with:
+
+```env
+CACHE_ENABLED=false
+```
+
+while Neon PostgreSQL remains the persistent database.
+
 ---
 
 # 🐳 Docker Architecture
 
-The Docker Compose environment contains two services:
+The Docker Compose environment contains two local services:
 
 ```text
 ┌─────────────────────────────────────────┐
@@ -266,9 +366,9 @@ The Docker Compose environment contains two services:
 │   └─────────────────┘                   │
 │                                         │
 └─────────────────────────────────────────┘
-              │
-              │ PostgreSQL
-              ▼
+             │
+             │ PostgreSQL
+             ▼
      ┌─────────────────────┐
      │   Neon PostgreSQL   │
      │ LangGraph Checkpoint│
@@ -276,6 +376,40 @@ The Docker Compose environment contains two services:
 ```
 
 This keeps the application container lightweight while using Neon as the managed PostgreSQL backend.
+
+---
+
+# ☁️ Deployment Architecture
+
+TravelMind is containerized with Docker and can be deployed as a Docker-based web service.
+
+The production architecture separates the application container from managed infrastructure:
+
+```text
+                    ┌─────────────────────┐
+                    │       Render        │
+                    │   TravelMind App    │
+                    │      Docker         │
+                    └──────────┬──────────┘
+                               │
+             ┌─────────────────┼─────────────────┐
+             │                 │                 │
+             ▼                 ▼                 ▼
+      Neon PostgreSQL       Groq             Tavily
+      LangGraph State       LLM              Research
+             │
+             │
+             └───────────────┐
+                             ▼
+                       AviationStack
+                             │
+                             ▼
+                         OpenWeather
+```
+
+Production secrets are configured through environment variables provided by the hosting platform.
+
+Secrets are never committed to the repository.
 
 ---
 
@@ -361,6 +495,7 @@ TravelMind-AI/
 │   │   ├── hotel_agent.py
 │   │   ├── itinerary_agent.py
 │   │   ├── prompts.py
+│   │   ├── validator_agent.py
 │   │   └── weather_agent.py
 │   │
 │   ├── api/
@@ -384,6 +519,10 @@ TravelMind-AI/
 │   ├── mcp_servers/
 │   │   ├── config.py
 │   │   └── weather_server.py
+│   │
+│   ├── validators/
+│   │   ├── __init__.py
+│   │   └── travel_validator.py
 │   │
 │   └── utils/
 │
@@ -415,7 +554,7 @@ PORT=8000
 RELOAD=false
 ```
 
-### Security
+## Security
 
 Never commit:
 
@@ -433,6 +572,8 @@ Never expose:
 
 Use `.env.example` for placeholder values only.
 
+For production, configure secrets through the deployment platform's environment-variable system.
+
 ---
 
 # 🚀 Running with Docker
@@ -446,13 +587,13 @@ cd TravelMind-AI
 
 ## 2. Create `.env`
 
-Linux/macOS:
+### Linux/macOS
 
 ```bash
 cp .env.example .env
 ```
 
-Windows PowerShell:
+### Windows PowerShell
 
 ```powershell
 Copy-Item .env.example .env
@@ -460,11 +601,15 @@ Copy-Item .env.example .env
 
 Add your real API credentials and Neon PostgreSQL connection string.
 
+---
+
 ## 3. Build
 
 ```bash
 docker compose build
 ```
+
+---
 
 ## 4. Start
 
@@ -478,17 +623,23 @@ The application will be available at:
 http://localhost:8000
 ```
 
+---
+
 ## 5. Run in background
 
 ```bash
 docker compose up -d
 ```
 
+---
+
 ## 6. Check containers
 
 ```bash
 docker compose ps
 ```
+
+---
 
 ## 7. Check application health
 
@@ -503,6 +654,8 @@ Or:
 ```bash
 curl http://localhost:8000/health
 ```
+
+---
 
 ## 8. Stop
 
@@ -548,6 +701,8 @@ uv run uvicorn app:app --host 127.0.0.1 --port 8000
 
 Serves the TravelMind web application.
 
+---
+
 ## `POST /api/travel`
 
 Runs the complete travel-planning workflow.
@@ -572,9 +727,13 @@ itinerary
 llm_calls
 ```
 
+---
+
 ## `GET /api/config`
 
 Returns configuration status without exposing secrets.
+
+---
 
 ## `POST /api/config`
 
@@ -582,9 +741,13 @@ Allows supported credentials to be configured for the current browser session.
 
 Credentials are validated before being accepted.
 
+---
+
 ## `DELETE /api/config`
 
 Clears session-specific credentials.
+
+---
 
 ## `GET /health`
 
@@ -667,6 +830,8 @@ Then test the complete planning workflow:
 Plan a 5-day trip from Delhi to Paris for 2 people.
 ```
 
+A good validation test should also include different destinations and trip durations.
+
 ---
 
 # 🎯 Example Use Case
@@ -688,25 +853,28 @@ Include:
 ### TravelMind
 
 ```text
-User Request
-     │
-     ▼
-Flight Research
-     │
-     ▼
-Hotel Research
-     │
-     ▼
-Weather Research
-     │
-     ▼
-Itinerary Generation
-     │
-     ▼
-Final AI Synthesis
-     │
-     ▼
-Complete Travel Plan
+                    User Request
+                         │
+                         ▼
+                  Flight Research
+                         │
+                         ▼
+                  Hotel Research
+                         │
+                         ▼
+                 Weather Research
+                         │
+                         ▼
+                Itinerary Generation
+                         │
+                         ▼
+                  Validation Layer
+                         │
+                         ▼
+                  Final AI Synthesis
+                         │
+                         ▼
+                 Complete Travel Plan
 ```
 
 ---
@@ -721,6 +889,8 @@ TravelMind demonstrates production-oriented AI engineering concepts including:
 * MCP tool integration
 * Remote MCP communication
 * Local MCP servers
+* Deterministic validation
+* LLM-based qualitative validation
 * FastAPI REST APIs
 * Neon PostgreSQL
 * LangGraph PostgreSQL checkpointing
@@ -733,6 +903,9 @@ TravelMind demonstrates production-oriented AI engineering concepts including:
 * Environment-based configuration
 * Dependency locking with `uv.lock`
 * Modular backend architecture
+* External API integration
+* Uncertainty-aware AI responses
+* Production-oriented safety checks
 
 ---
 
@@ -742,9 +915,9 @@ Traditional LLM application:
 
 ```text
 User
- ↓
+  ↓
 LLM
- ↓
+  ↓
 Response
 ```
 
@@ -759,16 +932,91 @@ User → FastAPI → LangGraph├── Hotel Agent ─── Research
                          │
                          ├── Itinerary Agent
                          │
+                         ├── Validator Agent
+                         │
                          └── Final Agent
                                   │
                                   ▼
                            Final Travel Plan
                                   │
                                   ▼
-                          Neon PostgreSQL
+                           Neon PostgreSQL
 ```
 
-This architecture demonstrates orchestration, tool calling, persistent state, caching, external API integration, and containerized deployment.
+This architecture demonstrates:
+
+* AI agent orchestration
+* Tool calling
+* MCP integration
+* Persistent state
+* Validation
+* External API integration
+* Caching
+* Session management
+* Containerized deployment
+* Production-oriented safety handling
+
+The system is designed to do more than send a prompt to an LLM and return the response.
+
+---
+
+# ☁️ Production Deployment
+
+TravelMind can be deployed as a Docker-based web service.
+
+The application container requires the following production configuration:
+
+```env
+GROQ_API_KEY=...
+GROQ_MODEL=openai/gpt-oss-20b
+TAVILY_API_KEY=...
+AVIATIONSTACK_API_KEY=...
+OPENWEATHER_API_KEY=...
+DATABASE_URL=...
+CACHE_ENABLED=false
+HOST=0.0.0.0
+PORT=10000
+RELOAD=false
+```
+
+Production infrastructure:
+
+```text
+┌──────────────────────────────┐
+│          Web Client          │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│     TravelMind AI Server     │
+│       Docker / FastAPI       │
+└──────────────┬───────────────┘
+               │
+       ┌───────┼────────┐
+       │       │        │
+       ▼       ▼        ▼
+     Groq    Tavily   MCP Tools
+       │                │
+       │          ┌─────┴─────┐
+       │          ▼           ▼
+       │    AviationStack  OpenWeather
+       │
+       ▼
+┌──────────────────────────────┐
+│       Neon PostgreSQL        │
+│   LangGraph Checkpointing    │
+└──────────────────────────────┘
+```
+
+Production secrets should be configured through the hosting platform rather than committed to Git.
+
+The application exposes:
+
+```text
+GET /health
+```
+
+for deployment health checks.
 
 ---
 
@@ -795,5 +1043,3 @@ Potential future improvements include:
 **Asir Rafique**
 
 GitHub: [@asirrafique](https://github.com/asirrafique)
-
----
