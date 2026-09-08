@@ -12,8 +12,9 @@ class TravelState(TypedDict):
     flight_results: str
     hotel_results: str
     itinerary: str
-    llm_calls: int
     weather_results: str
+    validation_results: str
+    llm_calls: int
 
 
 def initial_state(user_query: str) -> TravelState:
@@ -28,5 +29,6 @@ def initial_state(user_query: str) -> TravelState:
         "hotel_results": "",
         "weather_results": "",
         "itinerary": "",
+        "validation_results": "",
         "llm_calls": 0,
     }

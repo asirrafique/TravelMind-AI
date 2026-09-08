@@ -12,6 +12,7 @@ from src.agents.weather_agent import weather_agent
 from src.clients.checkpointer import get_checkpointer
 from src.config.session import require, resolve_database_url
 from src.graph.state import TravelState
+from src.agents.validator_agent import validator_agent
 
 
 def build_graph() -> StateGraph:
@@ -23,13 +24,15 @@ def build_graph() -> StateGraph:
     graph.add_node("hotel_agent", hotel_agent)
     graph.add_node("weather_agent", weather_agent)
     graph.add_node("itinerary_agent", itinerary_agent)
+    graph.add_node("validator_agent", validator_agent)
     graph.add_node("final_agent", final_agent)
 
     graph.add_edge(START, "flight_agent")
     graph.add_edge("flight_agent", "hotel_agent")
     graph.add_edge("hotel_agent", "weather_agent")
     graph.add_edge("weather_agent", "itinerary_agent")
-    graph.add_edge("itinerary_agent", "final_agent")
+    graph.add_edge("itinerary_agent", "validator_agent")
+    graph.add_edge("validator_agent", "final_agent")
     graph.add_edge("final_agent", END)
 
     return graph

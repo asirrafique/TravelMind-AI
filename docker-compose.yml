@@ -17,45 +17,13 @@ services:
       PORT: 8000
       RELOAD: "false"
 
-      # Docker service names are used instead of localhost
+      # Redis runs inside Docker Compose
       REDIS_URL: redis://redis:6379/0
       CACHE_ENABLED: "true"
 
-      # Local PostgreSQL
-      DATABASE_URL: postgresql://travelmind:travelmind@postgres:5432/travelmind
-
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
-
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: travelmind-postgres
-
-    environment:
-      POSTGRES_DB: travelmind
-      POSTGRES_USER: travelmind
-      POSTGRES_PASSWORD: travelmind
-
-    ports:
-      - "5432:5432"
-
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U travelmind -d travelmind"
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
     restart: unless-stopped
 
@@ -84,5 +52,4 @@ services:
 
 
 volumes:
-  postgres_data:
   redis_data:

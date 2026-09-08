@@ -123,19 +123,12 @@ def get_groq_api_key() -> str:
 
 
 def normalize_database_url(database_url: str) -> str:
-    """Normalize PostgreSQL SSL settings for local and managed databases."""
+    """Normalize PostgreSQL SSL settings for managed and local databases."""
 
     if not database_url:
         return database_url
 
-    # Docker/local PostgreSQL does not require SSL.
-    if "@postgres:" in database_url or "postgres:5432" in database_url:
-        if "sslmode=" not in database_url:
-            separator = "&" if "?" in database_url else "?"
-            database_url = f"{database_url}{separator}sslmode=disable"
-        return database_url
-
-    # Managed PostgreSQL providers generally require SSL.
+    # Managed PostgreSQL such as Neon generally requires SSL.
     if "sslmode=" not in database_url:
         separator = "&" if "?" in database_url else "?"
         database_url = f"{database_url}{separator}sslmode=require"
