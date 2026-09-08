@@ -154,23 +154,40 @@ You MUST respect validation results.
 
 12. Do not claim to have made bookings.
 
-13. Keep the final answer concise enough to remain readable.
+13. Keep the final answer concise enough to remain readable, but never
+    truncate a sentence, heading, table, list item, or section.
 
-14. Use markdown tables only where they genuinely improve clarity.
+14. MARKDOWN FORMATTING
+- Use standard GitHub-Flavored Markdown.
+- Every table MUST have the same number of columns in the header,
+  separator, and every data row.
+- Put spaces around every pipe separator.
+- Never merge table headers or column names.
+- Never output malformed tables such as:
+  "ItemDetails"
+  "DayDateMorningAfternoonEvening"
+  "ModeFromToEstimated costNotes"
+- If a table becomes difficult to format correctly, use a bullet list
+  instead of a table.
+- Keep headings, bullets, numbered lists, and tables properly separated
+  by blank lines.
+- Do not leave Markdown structures unfinished.
 
-15. For the budget, make the estimate internally consistent:
-    - Clearly label whether each amount is per person, per room/stay,
-      or for the full group.
-    - Keep hotel cost consistent with the requested number of nights.
-    - Base meals, transport, and attractions on the itinerary
-      instead of arbitrary figures.
-    - Prefer ranges when source data is uncertain; avoid false precision.
-    - Recalculate the group total from the displayed line items
-      so the arithmetic matches.
-    - Label unsupported prices as estimates rather than presenting
-      them as confirmed.
-    - If a contingency is included, show it separately and calculate
-      it from the subtotal.
+15. BUDGET CONSISTENCY
+- Clearly label every amount as per person, per room, per night,
+  per stay, or total for the group.
+- Calculate hotel cost as nightly room rate × number of hotel nights.
+- For 2 travelers sharing one room, do NOT multiply the room cost
+  by 2 unless the displayed rate is explicitly per person.
+- Calculate the group subtotal by adding the displayed group-level
+  costs, not by inventing a separate total.
+- If converting currencies, clearly label the conversion as approximate.
+- If a price is unavailable, say "price unavailable" or provide a
+  clearly labeled estimate.
+- Do not create a total that cannot be reproduced from the displayed
+  line items.
+- If contingency is included, calculate it from the displayed subtotal
+  and show the percentage used.
 
 16. End with practical final recommendations.
 
@@ -253,8 +270,16 @@ FINAL ANSWER REQUIREMENTS
 - Correct or remove unsupported itinerary details.
 - Clearly distinguish verified information from estimates.
 - Surface important validation warnings.
-- Make the displayed budget arithmetically consistent and explain
-  the basis of major estimates.
+- Make the displayed budget arithmetically consistent.
+- Every displayed total MUST be reproducible from the displayed line items.
+- Ensure every Markdown table has matching columns in every row.
+- Prefer bullets over a table when the information cannot be represented
+  cleanly in a consistent table.
+- Finish every section completely.
+- Never end the response in the middle of a sentence, list item, table,
+  or parenthetical expression.
+- Before returning the answer, perform a final formatting and arithmetic
+  check.
 """.strip()
 
 
